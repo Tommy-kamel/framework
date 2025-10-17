@@ -9,7 +9,8 @@ import java.io.IOException;
 public class FrontServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        resp.getWriter().println("Requete geree par FrontServlet pour l'URL : " + req.getRequestURI());
+        String uri = req.getRequestURI();
+        resp.getWriter().println("URL : " + uri);
     }
 
     @Override
