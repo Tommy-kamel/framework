@@ -1,3 +1,7 @@
-com\annotation\AnnotationController.class
 com\annotation\UrlController.class
 com\example\FrontServlet.class
+com\registry\PackageScanner.class
+com\listener\AppInitializer.class
+com\filter\MyFilter.class
+com\registry\AnnotatedRouteRegistry.class
+com\annotation\AnnotationController.class
