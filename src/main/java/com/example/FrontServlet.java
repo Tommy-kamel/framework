@@ -41,11 +41,16 @@ public class FrontServlet extends HttpServlet {
                 Method method = registry.getMethod(path);
                 Object instance = registry.getInstance(path);
                 String packageName = method.getDeclaringClass().getPackageName();
-                try {
-                    String result = (String) method.invoke(instance);
-                    out.println("<html><body>Package: " + packageName + "<br>Result: " + result + "</body></html>");
-                } catch (Exception e) {
-                    out.println("<html><body>Error: " + e.getMessage() + "</body></html>");
+                String methodName = method.getName();
+                if (method.getReturnType() == String.class) {
+                    try {
+                        String result = (String) method.invoke(instance);
+                        out.println("<html><body>Method: " + methodName + "<br>Package: " + packageName + "<br>Return Type: " + method.getReturnType().getSimpleName() + "<br>Result: " + result + "</body></html>");
+                    } catch (Exception e) {
+                        out.println("<html><body>Error: " + e.getMessage() + "</body></html>");
+                    }
+                } else {
+                    out.println("<html><body>Package: " + packageName + "<br>Return Type: " + method.getReturnType().getSimpleName() + "</body></html>");
                 }
             } else {
                 out.println("<html><body>" + path + " - 404 Not Found</body></html>");
