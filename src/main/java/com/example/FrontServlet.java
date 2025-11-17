@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.lang.reflect.Method;
+import com.example.ModelView;
 
 public class FrontServlet extends HttpServlet {
 
@@ -30,6 +31,7 @@ public class FrontServlet extends HttpServlet {
 
         if (path.endsWith(".jsp")) {
             // Check if JSP exists
+            System.out.println("Checking resource: " + path + " exists: " + (getServletContext().getResource(path) != null));
             if (getServletContext().getResource(path) != null) {
                 RequestDispatcher dispatcher = getServletContext().getNamedDispatcher("jsp");
                 dispatcher.forward(request, response);
@@ -49,8 +51,17 @@ public class FrontServlet extends HttpServlet {
                     } catch (Exception e) {
                         out.println("<html><body>Error: " + e.getMessage() + "</body></html>");
                     }
+                } else if (method.getReturnType() == ModelView.class) {
+                    try {
+                        ModelView mv = (ModelView) method.invoke(instance);
+                        String view = mv.getView();
+                        RequestDispatcher dispatcher = request.getRequestDispatcher(view);
+                        dispatcher.forward(request, response);
+                    } catch (Exception e) {
+                        out.println("<html><body>Error: " + e.getMessage() + "</body></html>");
+                    }
                 } else {
-                    out.println("<html><body>Package: " + packageName + "<br>Return Type: " + method.getReturnType().getSimpleName() + "</body></html>");
+                    out.println("<html><body>Package: " + packageName + "<br>Return Type: " + method.getReturnType().getSimpleName() + "<br><span style='color:red;'>Type de retour non supporté</span></body></html>");
                 }
             } else {
                 out.println("<html><body>" + path + " - 404 Not Found</body></html>");

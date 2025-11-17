@@ -9,6 +9,13 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
+& mvn install
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Framework install failed!"
+    Read-Host "Press Enter to exit"
+    exit 1
+}
+
 Write-Host "Creating lib directory if not exists..."
 New-Item -ItemType Directory -Path "D:\PROG\JAVA\S5\Mr Naina\Sprint1\test\src\main\webapp\WEB-INF\lib" -Force | Out-Null
 
