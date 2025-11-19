@@ -4,11 +4,15 @@ import com.annotation.UrlController;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+import java.util.List;
+import java.util.ArrayList;
 
 public class AnnotatedRouteRegistry {
 
-    private Map<String, Method> urlMap = new HashMap<>();
-    private Map<String, Object> instances = new HashMap<>();
+    private Map<Pattern, Method> patternMap = new HashMap<>();
+    private Map<Pattern, Object> patternInstances = new HashMap<>();
 
     public void scanAndRegister(String packageName) {
         // For simplicity, we'll manually add known classes
@@ -25,8 +29,10 @@ public class AnnotatedRouteRegistry {
                         if (url.isEmpty()) {
                             url = "/";
                         }
-                        urlMap.put(url, method);
-                        instances.put(url, instance);
+                        String patternStr = url.replaceAll("\\{[^}]+\\}", "(.+)");
+                        Pattern pattern = Pattern.compile(patternStr);
+                        patternMap.put(pattern, method);
+                        patternInstances.put(pattern, instance);
                     }
                 }
             } catch (Exception e) {
@@ -36,14 +42,43 @@ public class AnnotatedRouteRegistry {
     }
 
     public Method getMethod(String url) {
-        return urlMap.get(url);
+        for (Pattern p : patternMap.keySet()) {
+            if (p.matcher(url).matches()) {
+                return patternMap.get(p);
+            }
+        }
+        return null;
     }
 
     public Object getInstance(String url) {
-        return instances.get(url);
+        for (Pattern p : patternInstances.keySet()) {
+            if (p.matcher(url).matches()) {
+                return patternInstances.get(p);
+            }
+        }
+        return null;
     }
 
     public boolean hasUrl(String url) {
-        return urlMap.containsKey(url);
+        for (Pattern p : patternMap.keySet()) {
+            if (p.matcher(url).matches()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public List<String> getParams(String url) {
+        for (Pattern p : patternMap.keySet()) {
+            Matcher m = p.matcher(url);
+            if (m.matches()) {
+                List<String> params = new ArrayList<>();
+                for (int i = 1; i <= m.groupCount(); i++) {
+                    params.add(m.group(i));
+                }
+                return params;
+            }
+        }
+        return null;
     }
 }
