@@ -5,4 +5,5 @@ com\listener\AppInitializer.class
 com\filter\MyFilter.class
 com\example\ModelView.class
 com\registry\AnnotatedRouteRegistry.class
+com\annotation\RequestParam.class
 com\annotation\AnnotationController.class
