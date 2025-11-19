@@ -13,6 +13,8 @@ import java.lang.reflect.Method;
 import com.example.ModelView;
 import java.util.List;
 import java.lang.reflect.Parameter;
+import com.annotation.RequestParam;
+import java.time.LocalDate;
 
 public class FrontServlet extends HttpServlet {
 
@@ -79,12 +81,18 @@ public class FrontServlet extends HttpServlet {
         Object[] args = new Object[params.length];
         for (int i = 0; i < params.length; i++) {
             String name = params[i].getName();
+            if (params[i].isAnnotationPresent(RequestParam.class)) {
+                RequestParam rp = params[i].getAnnotation(RequestParam.class);
+                name = rp.value();
+            }
             String value = request.getParameter(name);
             Class<?> type = params[i].getType();
             if (type == String.class) {
                 args[i] = value;
             } else if (type == Integer.class || type == int.class) {
                 args[i] = value != null ? Integer.valueOf(value) : null;
+            } else if (type == LocalDate.class) {
+                args[i] = value != null ? LocalDate.parse(value) : null;
             } else {
                 args[i] = null;
             }
