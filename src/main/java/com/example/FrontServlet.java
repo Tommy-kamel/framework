@@ -55,6 +55,7 @@ public class FrontServlet extends HttpServlet {
                     try {
                         ModelView mv = (ModelView) method.invoke(instance);
                         String view = mv.getView();
+                        request.setAttribute("data", mv.getData());
                         RequestDispatcher dispatcher = request.getRequestDispatcher(view);
                         dispatcher.forward(request, response);
                     } catch (Exception e) {
