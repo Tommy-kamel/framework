@@ -1,3 +1,4 @@
+com\annotation\PathVariable.class
 com\annotation\UrlController.class
 com\example\FrontServlet.class
 com\registry\PackageScanner.class
