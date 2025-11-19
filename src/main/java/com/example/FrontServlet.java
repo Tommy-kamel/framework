@@ -11,6 +11,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.lang.reflect.Method;
 import com.example.ModelView;
+import java.util.List;
+import java.lang.reflect.Parameter;
 
 public class FrontServlet extends HttpServlet {
 
@@ -46,14 +48,16 @@ public class FrontServlet extends HttpServlet {
                 String methodName = method.getName();
                 if (method.getReturnType() == String.class) {
                     try {
-                        String result = (String) method.invoke(instance);
+                        Object[] args = getArgs(method, request);
+                        String result = (String) method.invoke(instance, args);
                         out.println("<html><body>Method: " + methodName + "<br>Package: " + packageName + "<br>Return Type: " + method.getReturnType().getSimpleName() + "<br>Result: " + result + "</body></html>");
                     } catch (Exception e) {
                         out.println("<html><body>Error: " + e.getMessage() + "</body></html>");
                     }
                 } else if (method.getReturnType() == ModelView.class) {
                     try {
-                        ModelView mv = (ModelView) method.invoke(instance);
+                        Object[] args = getArgs(method, request);
+                        ModelView mv = (ModelView) method.invoke(instance, args);
                         String view = mv.getView();
                         request.setAttribute("data", mv.getData());
                         RequestDispatcher dispatcher = request.getRequestDispatcher(view);
@@ -70,10 +74,22 @@ public class FrontServlet extends HttpServlet {
         }
     }
 
-    @Override
-    public void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        service(request, response);
+    private Object[] getArgs(Method method, HttpServletRequest request) {
+        Parameter[] params = method.getParameters();
+        Object[] args = new Object[params.length];
+        for (int i = 0; i < params.length; i++) {
+            String name = params[i].getName();
+            String value = request.getParameter(name);
+            Class<?> type = params[i].getType();
+            if (type == String.class) {
+                args[i] = value;
+            } else if (type == Integer.class || type == int.class) {
+                args[i] = value != null ? Integer.valueOf(value) : null;
+            } else {
+                args[i] = null;
+            }
+        }
+        return args;
     }
 
     @Override
