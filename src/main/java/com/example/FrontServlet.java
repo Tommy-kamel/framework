@@ -15,6 +15,7 @@ import java.util.List;
 import java.lang.reflect.Parameter;
 import com.annotation.RequestParam;
 import java.time.LocalDate;
+import com.annotation.PathVariable;
 
 public class FrontServlet extends HttpServlet {
 
@@ -50,7 +51,8 @@ public class FrontServlet extends HttpServlet {
                 String methodName = method.getName();
                 if (method.getReturnType() == String.class) {
                     try {
-                        Object[] args = getArgs(method, request);
+                        List<String> pathParams = registry.getParams(path);
+                        Object[] args = getArgs(method, request, pathParams);
                         String result = (String) method.invoke(instance, args);
                         out.println("<html><body>Method: " + methodName + "<br>Package: " + packageName + "<br>Return Type: " + method.getReturnType().getSimpleName() + "<br>Result: " + result + "</body></html>");
                     } catch (Exception e) {
@@ -58,7 +60,8 @@ public class FrontServlet extends HttpServlet {
                     }
                 } else if (method.getReturnType() == ModelView.class) {
                     try {
-                        Object[] args = getArgs(method, request);
+                        List<String> pathParams = registry.getParams(path);
+                        Object[] args = getArgs(method, request, pathParams);
                         ModelView mv = (ModelView) method.invoke(instance, args);
                         String view = mv.getView();
                         request.setAttribute("data", mv.getData());
@@ -76,16 +79,23 @@ public class FrontServlet extends HttpServlet {
         }
     }
 
-    private Object[] getArgs(Method method, HttpServletRequest request) {
+    private Object[] getArgs(Method method, HttpServletRequest request, List<String> pathParams) {
         Parameter[] params = method.getParameters();
         Object[] args = new Object[params.length];
+        int pathVarIndex = 0;
         for (int i = 0; i < params.length; i++) {
-            String name = params[i].getName();
+            String value = null;
             if (params[i].isAnnotationPresent(RequestParam.class)) {
                 RequestParam rp = params[i].getAnnotation(RequestParam.class);
-                name = rp.value();
+                String name = rp.value();
+                value = request.getParameter(name);
+            } else if (params[i].isAnnotationPresent(PathVariable.class)) {
+                value = pathParams.get(pathVarIndex++);
+            } else {
+                // For parameters without annotation, assume query param with param name
+                String name = params[i].getName();
+                value = request.getParameter(name);
             }
-            String value = request.getParameter(name);
             Class<?> type = params[i].getType();
             if (type == String.class) {
                 args[i] = value;
