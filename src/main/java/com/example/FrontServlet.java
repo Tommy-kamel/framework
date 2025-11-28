@@ -31,6 +31,7 @@ public class FrontServlet extends HttpServlet {
     public void service(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String path = request.getRequestURI().substring(request.getContextPath().length());
+        String httpMethod = request.getMethod();
         response.setContentType("text/html");
         PrintWriter out = response.getWriter();
 
@@ -44,14 +45,14 @@ public class FrontServlet extends HttpServlet {
                 out.println("<html><body>" + path + " - 404 Not Found</body></html>");
             }
         } else {
-            if (registry.hasUrl(path)) {
-                Method method = registry.getMethod(path);
-                Object instance = registry.getInstance(path);
+            if (registry.hasUrl(path, httpMethod)) {
+                Method method = registry.getMethod(path, httpMethod);
+                Object instance = registry.getInstance(path, httpMethod);
                 String packageName = method.getDeclaringClass().getPackageName();
                 String methodName = method.getName();
                 if (method.getReturnType() == String.class) {
                     try {
-                        List<String> pathParams = registry.getParams(path);
+                        List<String> pathParams = registry.getParams(path, httpMethod);
                         Object[] args = getArgs(method, request, pathParams);
                         String result = (String) method.invoke(instance, args);
                         out.println("<html><body>Method: " + methodName + "<br>Package: " + packageName + "<br>Return Type: " + method.getReturnType().getSimpleName() + "<br>Result: " + result + "</body></html>");
@@ -60,7 +61,7 @@ public class FrontServlet extends HttpServlet {
                     }
                 } else if (method.getReturnType() == ModelView.class) {
                     try {
-                        List<String> pathParams = registry.getParams(path);
+                        List<String> pathParams = registry.getParams(path, httpMethod);
                         Object[] args = getArgs(method, request, pathParams);
                         ModelView mv = (ModelView) method.invoke(instance, args);
                         String view = mv.getView();

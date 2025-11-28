@@ -1,6 +1,7 @@
 package com.registry;
 
 import com.annotation.UrlController;
+import com.annotation.HttpMethod;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
@@ -11,8 +12,14 @@ import java.util.ArrayList;
 
 public class AnnotatedRouteRegistry {
 
-    private Map<Pattern, Method> patternMap = new HashMap<>();
-    private Map<Pattern, Object> patternInstances = new HashMap<>();
+    private List<RouteInfo> routes = new ArrayList<>();
+
+    public static class RouteInfo {
+        public Pattern pattern;
+        public Method method;
+        public Object instance;
+        public String httpMethod;
+    }
 
     public void scanAndRegister(String packageName) {
         // For simplicity, we'll manually add known classes
@@ -31,8 +38,17 @@ public class AnnotatedRouteRegistry {
                         }
                         String patternStr = url.replaceAll("\\{[^}]+\\}", "(.+)");
                         Pattern pattern = Pattern.compile(patternStr);
-                        patternMap.put(pattern, method);
-                        patternInstances.put(pattern, instance);
+                        String httpMethod = "GET"; // default
+                        if (method.isAnnotationPresent(HttpMethod.class)) {
+                            HttpMethod hm = method.getAnnotation(HttpMethod.class);
+                            httpMethod = hm.value();
+                        }
+                        RouteInfo ri = new RouteInfo();
+                        ri.pattern = pattern;
+                        ri.method = method;
+                        ri.instance = instance;
+                        ri.httpMethod = httpMethod;
+                        routes.add(ri);
                     }
                 }
             } catch (Exception e) {
@@ -41,42 +57,44 @@ public class AnnotatedRouteRegistry {
         }
     }
 
-    public Method getMethod(String url) {
-        for (Pattern p : patternMap.keySet()) {
-            if (p.matcher(url).matches()) {
-                return patternMap.get(p);
+    public Method getMethod(String url, String httpMethod) {
+        for (RouteInfo ri : routes) {
+            if (ri.httpMethod.equals(httpMethod) && ri.pattern.matcher(url).matches()) {
+                return ri.method;
             }
         }
         return null;
     }
 
-    public Object getInstance(String url) {
-        for (Pattern p : patternInstances.keySet()) {
-            if (p.matcher(url).matches()) {
-                return patternInstances.get(p);
+    public Object getInstance(String url, String httpMethod) {
+        for (RouteInfo ri : routes) {
+            if (ri.httpMethod.equals(httpMethod) && ri.pattern.matcher(url).matches()) {
+                return ri.instance;
             }
         }
         return null;
     }
 
-    public boolean hasUrl(String url) {
-        for (Pattern p : patternMap.keySet()) {
-            if (p.matcher(url).matches()) {
+    public boolean hasUrl(String url, String httpMethod) {
+        for (RouteInfo ri : routes) {
+            if (ri.httpMethod.equals(httpMethod) && ri.pattern.matcher(url).matches()) {
                 return true;
             }
         }
         return false;
     }
 
-    public List<String> getParams(String url) {
-        for (Pattern p : patternMap.keySet()) {
-            Matcher m = p.matcher(url);
-            if (m.matches()) {
-                List<String> params = new ArrayList<>();
-                for (int i = 1; i <= m.groupCount(); i++) {
-                    params.add(m.group(i));
+    public List<String> getParams(String url, String httpMethod) {
+        for (RouteInfo ri : routes) {
+            if (ri.httpMethod.equals(httpMethod)) {
+                Matcher m = ri.pattern.matcher(url);
+                if (m.matches()) {
+                    List<String> params = new ArrayList<>();
+                    for (int i = 1; i <= m.groupCount(); i++) {
+                        params.add(m.group(i));
+                    }
+                    return params;
                 }
-                return params;
             }
         }
         return null;
