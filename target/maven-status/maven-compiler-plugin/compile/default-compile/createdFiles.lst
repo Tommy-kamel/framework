@@ -1,3 +1,5 @@
+com\registry\AnnotatedRouteRegistry$RouteInfo.class
+com\annotation\HttpMethod.class
 com\annotation\PathVariable.class
 com\annotation\UrlController.class
 com\example\FrontServlet.class
