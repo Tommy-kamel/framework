@@ -13,6 +13,9 @@ import java.lang.reflect.Method;
 import com.example.ModelView;
 import java.util.List;
 import java.lang.reflect.Parameter;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Enumeration;
 import com.annotation.RequestParam;
 import java.time.LocalDate;
 import com.annotation.PathVariable;
@@ -85,27 +88,39 @@ public class FrontServlet extends HttpServlet {
         Object[] args = new Object[params.length];
         int pathVarIndex = 0;
         for (int i = 0; i < params.length; i++) {
-            String value = null;
-            if (params[i].isAnnotationPresent(RequestParam.class)) {
-                RequestParam rp = params[i].getAnnotation(RequestParam.class);
-                String name = rp.value();
-                value = request.getParameter(name);
-            } else if (params[i].isAnnotationPresent(PathVariable.class)) {
-                value = pathParams.get(pathVarIndex++);
-            } else {
-                // For parameters without annotation, assume query param with param name
-                String name = params[i].getName();
-                value = request.getParameter(name);
-            }
             Class<?> type = params[i].getType();
-            if (type == String.class) {
-                args[i] = value;
-            } else if (type == Integer.class || type == int.class) {
-                args[i] = value != null ? Integer.valueOf(value) : null;
-            } else if (type == LocalDate.class) {
-                args[i] = value != null ? LocalDate.parse(value) : null;
+            if (type == Map.class) {
+                Map<String, Object> map = new HashMap<>();
+                Enumeration<String> paramNames = request.getParameterNames();
+                while (paramNames.hasMoreElements()) {
+                    String paramName = paramNames.nextElement();
+                    String[] values = request.getParameterValues(paramName);
+                    String paramValue = values != null && values.length > 0 ? (values.length == 1 ? values[0] : String.join(",", values)) : null;
+                    map.put(paramName, paramValue);
+                }
+                args[i] = map;
             } else {
-                args[i] = null;
+                String value = null;
+                if (params[i].isAnnotationPresent(RequestParam.class)) {
+                    RequestParam rp = params[i].getAnnotation(RequestParam.class);
+                    String name = rp.value();
+                    value = request.getParameter(name);
+                } else if (params[i].isAnnotationPresent(PathVariable.class)) {
+                    value = pathParams.get(pathVarIndex++);
+                } else {
+                    // For parameters without annotation, assume query param with param name
+                    String name = params[i].getName();
+                    value = request.getParameter(name);
+                }
+                if (type == String.class) {
+                    args[i] = value;
+                } else if (type == Integer.class || type == int.class) {
+                    args[i] = value != null ? Integer.valueOf(value) : null;
+                } else if (type == LocalDate.class) {
+                    args[i] = value != null ? LocalDate.parse(value) : null;
+                } else {
+                    args[i] = null;
+                }
             }
         }
         return args;
