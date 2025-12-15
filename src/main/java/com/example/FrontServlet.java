@@ -16,6 +16,8 @@ import java.lang.reflect.Parameter;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Enumeration;
+import java.util.Arrays;
+import java.util.List;
 import com.annotation.RequestParam;
 import java.time.LocalDate;
 import com.annotation.PathVariable;
@@ -119,7 +121,46 @@ public class FrontServlet extends HttpServlet {
                 } else if (type == LocalDate.class) {
                     args[i] = value != null ? LocalDate.parse(value) : null;
                 } else {
-                    args[i] = null;
+                    // Support for custom objects (POJO)
+                    try {
+                        Object instance = type.getDeclaredConstructor().newInstance();
+                        Enumeration<String> paramNames = request.getParameterNames();
+                        while (paramNames.hasMoreElements()) {
+                            String paramName = paramNames.nextElement();
+                            String[] values = request.getParameterValues(paramName);
+                            String paramValue = values != null && values.length > 0 ? values[0] : null;
+                            // Assume setter like setNom(String value) or setMatieres(List<String> value)
+                            String setterName = "set" + paramName.substring(0, 1).toUpperCase() + paramName.substring(1);
+                            try {
+                                // Always try List setter first for parameters with values
+                                if (values != null && values.length > 0) {
+                                    try {
+                                        java.lang.reflect.Method setterList = type.getMethod(setterName, List.class);
+                                        setterList.invoke(instance, Arrays.asList(values));
+                                        continue; // Skip to next param
+                                    } catch (NoSuchMethodException eList) {
+                                        // Fall back to single value
+                                    }
+                                }
+                                // Try String setter
+                                java.lang.reflect.Method setter = type.getMethod(setterName, String.class);
+                                setter.invoke(instance, paramValue);
+                            } catch (NoSuchMethodException e) {
+                                // Setter not found, try Integer setter if value is number
+                                if (paramValue != null && paramValue.matches("\\d+")) {
+                                    try {
+                                        java.lang.reflect.Method setterInt = type.getMethod(setterName, Integer.class);
+                                        setterInt.invoke(instance, Integer.valueOf(paramValue));
+                                    } catch (NoSuchMethodException e2) {
+                                        // Ignore
+                                    }
+                                }
+                            }
+                        }
+                        args[i] = instance;
+                    } catch (Exception e) {
+                        args[i] = null;
+                    }
                 }
             }
         }
