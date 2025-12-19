@@ -21,6 +21,7 @@ import java.util.List;
 import com.annotation.RequestParam;
 import java.time.LocalDate;
 import com.annotation.PathVariable;
+import com.annotation.Json;
 
 public class FrontServlet extends HttpServlet {
 
@@ -60,7 +61,12 @@ public class FrontServlet extends HttpServlet {
                         List<String> pathParams = registry.getParams(path, httpMethod);
                         Object[] args = getArgs(method, request, pathParams);
                         String result = (String) method.invoke(instance, args);
-                        out.println("<html><body>Method: " + methodName + "<br>Package: " + packageName + "<br>Return Type: " + method.getReturnType().getSimpleName() + "<br>Result: " + result + "</body></html>");
+                        if (method.isAnnotationPresent(Json.class)) {
+                            response.setContentType("application/json");
+                            out.println(result);
+                        } else {
+                            out.println("<html><body>Method: " + methodName + "<br>Package: " + packageName + "<br>Return Type: " + method.getReturnType().getSimpleName() + "<br>Result: " + result + "</body></html>");
+                        }
                     } catch (Exception e) {
                         out.println("<html><body>Error: " + e.getMessage() + "</body></html>");
                     }
@@ -76,8 +82,20 @@ public class FrontServlet extends HttpServlet {
                     } catch (Exception e) {
                         out.println("<html><body>Error: " + e.getMessage() + "</body></html>");
                     }
-                } else {
-                    out.println("<html><body>Package: " + packageName + "<br>Return Type: " + method.getReturnType().getSimpleName() + "<br><span style='color:red;'>Type de retour non supporté</span></body></html>");
+                } else if (method.getReturnType() == Map.class) {
+                    try {
+                        List<String> pathParams = registry.getParams(path, httpMethod);
+                        Object[] args = getArgs(method, request, pathParams);
+                        Map result = (Map) method.invoke(instance, args);
+                        if (method.isAnnotationPresent(Json.class)) {
+                            response.setContentType("application/json");
+                            String json = mapToJson(result);
+                        } else {
+                            out.println("<html><body>Method: " + methodName + "<br>Package: " + packageName + "<br>Return Type: " + method.getReturnType().getSimpleName() + "<br>Result: " + result + "</body></html>");
+                        }
+                    } catch (Exception e) {
+                        out.println("<html><body>Error: " + e.getMessage() + "</body></html>");
+                    }
                 }
             } else {
                 out.println("<html><body>" + path + " - 404 Not Found</body></html>");
@@ -165,6 +183,28 @@ public class FrontServlet extends HttpServlet {
             }
         }
         return args;
+    }
+
+    private String mapToJson(Map<String, Object> map) {
+        StringBuilder json = new StringBuilder("{");
+        boolean first = true;
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            if (!first) json.append(",");
+            json.append("\"").append(entry.getKey()).append("\":");
+            Object value = entry.getValue();
+            if (value instanceof String) {
+                json.append("\"").append(value).append("\"");
+            } else if (value instanceof Number || value instanceof Boolean) {
+                json.append(value);
+            } else if (value instanceof Map) {
+                json.append(mapToJson((Map<String, Object>) value));
+            } else {
+                json.append("\"").append(value.toString()).append("\"");
+            }
+            first = false;
+        }
+        json.append("}");
+        return json.toString();
     }
 
     @Override
