@@ -9,6 +9,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Part;
+import jakarta.servlet.annotation.MultipartConfig;
 import java.lang.reflect.Method;
 import com.example.ModelView;
 import java.util.List;
@@ -22,7 +24,13 @@ import com.annotation.RequestParam;
 import java.time.LocalDate;
 import com.annotation.PathVariable;
 import com.annotation.Json;
+import com.example.FileUpload;
 
+@MultipartConfig(
+    maxFileSize = 10485760,      // 10 MB
+    maxRequestSize = 20971520,   // 20 MB
+    fileSizeThreshold = 1048576  // 1 MB
+)
 public class FrontServlet extends HttpServlet {
 
     private AnnotatedRouteRegistry registry;
@@ -119,6 +127,18 @@ public class FrontServlet extends HttpServlet {
                     map.put(paramName, paramValue);
                 }
                 args[i] = map;
+            } else if (type == FileUpload.class) {
+                String paramName = params[i].getName();
+                try {
+                    Part part = request.getPart(paramName);
+                    if (part != null && part.getSize() > 0) {
+                        args[i] = new FileUpload(part);
+                    } else {
+                        args[i] = null;
+                    }
+                } catch (Exception e) {
+                    args[i] = null;
+                }
             } else {
                 String value = null;
                 if (params[i].isAnnotationPresent(RequestParam.class)) {

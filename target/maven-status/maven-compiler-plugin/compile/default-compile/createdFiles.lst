@@ -10,4 +10,5 @@ com\annotation\PathVariable.class
 com\example\FrontServlet.class
 com\listener\AppInitializer.class
 com\filter\MyFilter.class
+com\example\FileUpload.class
 com\annotation\AnnotationController.class
